@@ -5,11 +5,8 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xtremand.ai.util.AiServiceUtil;
 import com.xtremand.config.AiConfigService;
 import com.xtremand.domain.dto.EmailRequest;
 import com.xtremand.domain.entity.AiConfig;
@@ -41,7 +39,7 @@ public class ClaudeService implements AiService {
             return "{\"error\": \"Claude API config not found for user.\"}";
         }
         AiConfig config = configOpt.get();
-        String apiKey = decrypt(config.getApiKey());
+        String apiKey = AiServiceUtil.decrypt(config.getApiKey());
 
         String prompt = AiPromptBuilder.buildGenericPrompt(emailRequest);;
         try {
@@ -72,7 +70,7 @@ public class ClaudeService implements AiService {
             if (root.has("content")) {
                 JsonNode content = root.get("content");
                 if (content.isArray() && content.size() > 0) {
-                    return formatResponse(content.get(0).get("text").asText());
+                    return AiServiceUtil.formatResponse(content.get(0).get("text").asText());
                 }
             }
             return "{\"error\": \"No completion from Claude API\"}";
@@ -81,34 +79,4 @@ public class ClaudeService implements AiService {
             return "{\"error\": \"ClaudeService failed: " + e.getMessage() + "\"}";
         }
     }
-
-    private String formatResponse(String responseText) {
-        String[] parts = responseText.split("\n\n", 2);
-        String subject = "No Subject";
-        String body = responseText;
-        if (parts.length == 2 && parts[0].toLowerCase().startsWith("subject:")) {
-            subject = parts[0].substring("subject:".length()).trim();
-            body = parts[1];
-        }
-        Map<String, String> result = new LinkedHashMap<>();
-        result.put("subject", subject);
-        result.put("body", body);
-        try {
-            return objectMapper.writeValueAsString(result);
-        } catch (Exception e) {
-            return "{\"error\": \"Failed to format Claude response.\"}";
-        }
-    }
-    
-    
-    private String decrypt(String encrypted) {
-        if (encrypted == null || encrypted.isEmpty()) return null;
-        try {
-            byte[] decodedBytes = Base64.getDecoder().decode(encrypted);
-            return new String(decodedBytes, StandardCharsets.UTF_8);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
-
 }

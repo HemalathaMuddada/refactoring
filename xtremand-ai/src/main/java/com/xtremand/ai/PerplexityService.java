@@ -5,14 +5,17 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xtremand.ai.util.AiServiceUtil;
 import com.xtremand.config.AiConfigService;
 import com.xtremand.domain.dto.EmailRequest;
 import com.xtremand.domain.entity.AiConfig;
@@ -32,15 +35,6 @@ public class PerplexityService implements AiService {
     }
 
     
-    private String decrypt(String encrypted) {
-        if (encrypted == null || encrypted.isEmpty()) return null;
-        try {
-            byte[] decodedBytes = Base64.getDecoder().decode(encrypted);
-            return new String(decodedBytes, StandardCharsets.UTF_8);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
-    }
     @Override
     public String generateEmailResponse(EmailRequest emailRequest) {
         Optional<AiConfig> configOpt = aiConfigService.getAiConfig(emailRequest.getAiEmail(), AiConfigType.PERPLEXITY);
@@ -49,7 +43,7 @@ public class PerplexityService implements AiService {
         }
         AiConfig config = configOpt.get();
 //        String apiKey = config.getApiKey();
-        String apiKey = decrypt(config.getApiKey());
+        String apiKey = AiServiceUtil.decrypt(config.getApiKey());
         String prompt = AiPromptBuilder.buildGenericPrompt(emailRequest);
 
         try {
@@ -84,34 +78,12 @@ public class PerplexityService implements AiService {
             JsonNode root = objectMapper.readTree(rawBody);
             if (root.has("choices") && root.get("choices").isArray()) {
                 String content = root.get("choices").get(0).get("message").get("content").asText();
-                return formatResponse(content);
+                return AiServiceUtil.formatResponse(content);
             }
             return "{\"error\": \"Invalid response from Perplexity API\"}";
 
         } catch (IOException | InterruptedException e) {
             return "{\"error\": \"PerplexityService failed: " + e.getMessage() + "\"}";
-        }
-    }
-
-    private String formatResponse(String responseText) {
-        String subject = "No Subject";
-        String body = responseText;
-        int subjectIndex = responseText.toLowerCase().indexOf("subject:");
-        if (subjectIndex != -1) {
-            int endOfLine = responseText.indexOf('\n', subjectIndex);
-            if (endOfLine == -1) endOfLine = responseText.length();
-            subject = responseText.substring(subjectIndex + "subject:".length(), endOfLine).trim();
-            body = responseText.substring(endOfLine).trim();
-        }
-
-        Map<String, String> result = new LinkedHashMap<>();
-        result.put("subject", subject);
-        result.put("body", body);
-
-        try {
-            return objectMapper.writeValueAsString(result);
-        } catch (Exception e) {
-            return "{\"error\": \"Failed to format Perplexity response.\"}";
         }
     }
     
