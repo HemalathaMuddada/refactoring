@@ -17,6 +17,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.servlet.view.RedirectView;
 
 import com.xtremand.auth.oauth2.service.AuthenticationFacade;
+import com.xtremand.config.IntegratedAppKeyService;
 import com.xtremand.config.MailConfigService;
 import com.xtremand.domain.dto.GoogleUserInfo;
 import com.xtremand.domain.dto.MailConfigInput;
@@ -61,6 +62,9 @@ public class GoogleOAuthController {
 	private final UserRepository userRepository;
 
 	@Autowired
+	private IntegratedAppKeyService integratedAppKeyService;
+
+	@Autowired
 	public GoogleOAuthController(MailConfigService mailConfigService, AuthenticationFacade authenticationFacade,
 			UserRepository userRepository) {
 		this.mailConfigService = mailConfigService;
@@ -78,7 +82,7 @@ public class GoogleOAuthController {
         String encodedState = URLEncoder.encode(combinedState, StandardCharsets.UTF_8);
         String joinedMails = String.join(",", importantMails);
         String encodedMails = URLEncoder.encode(joinedMails, StandardCharsets.UTF_8);
-        String url = "https://accounts.google.com/o/oauth2/v2/auth" + "?client_id="
+        String url = integratedAppKeyService.getUrl("GOOGLE_AUTH_URL") + "?client_id="
                 + URLEncoder.encode(googleClientId, StandardCharsets.UTF_8) + "&redirect_uri="
                 + URLEncoder.encode(googleRedirectUri, StandardCharsets.UTF_8) + "&response_type=code" + "&scope="
                 + URLEncoder.encode("https://mail.google.com/ https://www.googleapis.com/auth/userinfo.email",
@@ -125,7 +129,7 @@ public class GoogleOAuthController {
 
 	// Exchange authorization code for tokens with error handling
 	private Mono<OAuthTokenResponse> exchangeCodeForTokens(String code) {
-		return webClient.post().uri("https://oauth2.googleapis.com/token")
+		return webClient.post().uri(integratedAppKeyService.getUrl("GOOGLE_TOKEN_URL"))
 				.contentType(MediaType.APPLICATION_FORM_URLENCODED)
 				.body(BodyInserters.fromFormData("code", code).with("client_id", googleClientId)
 						.with("client_secret", googleClientSecret).with("redirect_uri", googleRedirectUri)
@@ -138,7 +142,7 @@ public class GoogleOAuthController {
 
 	// Fetch user email from Google's userinfo endpoint
 	private Mono<String> fetchUserEmail(String accessToken) {
-		return webClient.get().uri("https://www.googleapis.com/oauth2/v2/userinfo")
+		return webClient.get().uri(integratedAppKeyService.getUrl("GOOGLE_USERINFO_URL"))
 				.headers(headers -> headers.setBearerAuth(accessToken)).retrieve().bodyToMono(GoogleUserInfo.class)
 				.map(GoogleUserInfo::getEmail);
 	}

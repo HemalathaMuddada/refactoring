@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.view.RedirectView;
 
+import com.xtremand.config.IntegratedAppKeyService;
 import com.xtremand.config.MailConfigService;
 import com.xtremand.domain.dto.MailConfigInput;
 import com.xtremand.domain.dto.OAuthTokenResponse;
@@ -57,6 +59,9 @@ public class OutlookOAuthController {
 
 	private final UserRepository userRepository;
 
+    @Autowired
+    private IntegratedAppKeyService integratedAppKeyService;
+
 	public OutlookOAuthController(MailConfigService mailConfigService, AuthenticationFacade authenticationFacade,
 			UserRepository userRepository) {
 		this.mailConfigService = mailConfigService;
@@ -74,7 +79,7 @@ public class OutlookOAuthController {
 		String combinedState = username + "|" + importantMailsJoined;
 		String encodedState = URLEncoder.encode(combinedState, StandardCharsets.UTF_8);
 
-		String url = "https://login.live.com/oauth20_authorize.srf" + "?client_id="
+        String url = integratedAppKeyService.getUrl("OUTLOOK_AUTH_URL") + "?client_id="
 				+ URLEncoder.encode(outlookClientId, StandardCharsets.UTF_8) + "&response_type=code" + "&redirect_uri="
 				+ URLEncoder.encode(outlookRedirectUri, StandardCharsets.UTF_8) + "&scope="
 				+ URLEncoder.encode("wl.signin wl.offline_access wl.imap wl.basic wl.emails wl.contacts_emails",
@@ -127,7 +132,7 @@ public class OutlookOAuthController {
 
 	// Exchange auth code for tokens with Outlook token endpoint
 	private Mono<OAuthTokenResponse> exchangeCodeForTokens(String code) {
-		return webClient.post().uri("https://login.live.com/oauth20_token.srf")
+        return webClient.post().uri(integratedAppKeyService.getUrl("OUTLOOK_TOKEN_URL"))
 				.contentType(MediaType.APPLICATION_FORM_URLENCODED)
 				.body(BodyInserters.fromFormData("client_id", outlookClientId)
 						.with("client_secret", outlookClientSecret).with("code", code)
@@ -143,7 +148,7 @@ public class OutlookOAuthController {
 
 	// Fetch user email from Outlook API
 	private Mono<String> fetchUserEmail(String accessToken) {
-		return webClient.get().uri("https://apis.live.net/v5.0/me")
+        return webClient.get().uri(integratedAppKeyService.getUrl("OUTLOOK_USERINFO_URL"))
 			    .headers(headers -> headers.setBearerAuth(accessToken))
 			    .retrieve()
 			    .bodyToMono(Object.class)

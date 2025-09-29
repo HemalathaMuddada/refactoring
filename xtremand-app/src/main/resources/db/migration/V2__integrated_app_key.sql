@@ -1,0 +1,38 @@
+CREATE TABLE integrated_app_key (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    `key` VARCHAR(255) NOT NULL UNIQUE,
+    value VARCHAR(255) NOT NULL
+);
+
+INSERT INTO integrated_app_key (`key`, value) VALUES
+('OLLAMA_GENERATE_URL', 'http://localhost:11434/api/generate'),
+('CHATGPT_COMPLETIONS_URL', 'https://api.openai.com/v1/chat/completions'),
+('RAG_REGISTER_URL', 'https://rag.xamplify.co/rag/register/'),
+('RAG_LOGIN_URL', 'https://rag.xamplify.co/rag/login/'),
+('RAG_THREAD_LIST_URL', 'https://rag.xamplify.co/rag/thread/{token}/list/'),
+('RAG_THREAD_MESSAGES_URL', 'https://rag.xamplify.co/rag/thread/{token}/{threadId}/messages/'),
+('RAG_VECTOR_STORE_URL', 'https://rag.xamplify.co/rag/vector-store/{token}/'),
+('RAG_THREAD_URL', 'https://rag.xamplify.co/rag/thread/{token}/'),
+('RAG_ASSISTANT_URL', 'https://rag.xamplify.co/rag/assistant/{token}/'),
+('RAG_DOCUMENT_INGEST_URL', 'https://rag.xamplify.co/rag/document/{token}/ingest/'),
+('RAG_MESSAGE_URL', 'https://rag.xamplify.co/rag/message/{token}/'),
+('RAG_RUN_URL', 'https://rag.xamplify.co/rag/run/{token}/'),
+('RAG_THREAD_DELETE_URL', 'https://rag.xamplify.co/rag/thread/{token}/{threadId}/'),
+('RAG_THREAD_UPDATE_URL', 'https://rag.xamplify.co/rag/thread/{token}/{threadId}/'),
+('PERPLEXITY_COMPLETIONS_URL', 'https://api.perplexity.ai/chat/completions'),
+('PERPLEXITY_THREAD_LIST_URL', 'https://www.perplexity.ai/rest/thread/list_recent?version=2.18&source=default'),
+('PERPLEXITY_THREAD_MESSAGES_URL', 'https://www.perplexity.ai/rest/thread/{threadId}/messages?version=2.18&source=default'),
+('PERPLEXITY_THREAD_MESSAGE_URL', 'https://www.perplexity.ai/rest/thread/{threadId}/message?version=2.18&source=default'),
+('PERPLEXITY_THREAD_CREATE_URL', 'https://www.perplexity.ai/rest/thread/create?version=2.18&source=default'),
+('PERPLEXITY_VECTOR_STORE_URL', 'https://api.perplexity.ai/vector-store/'),
+('CLAUDE_MESSAGES_URL', 'https://api.anthropic.com/v1/messages'),
+('POLLINATIONS_URL', 'https://text.pollinations.ai/'),
+('GOOGLE_AUTH_URL', 'https://accounts.google.com/o/oauth2/v2/auth'),
+('GOOGLE_TOKEN_URL', 'https://oauth2.googleapis.com/token'),
+('GOOGLE_USERINFO_URL', 'https://www.googleapis.com/oauth2/v2/userinfo'),
+('MICROSOFT_AUTH_URL', 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize'),
+('MICROSOFT_TOKEN_URL', 'https://login.microsoftonline.com/common/oauth2/v2.0/token'),
+('MICROSOFT_GRAPH_URL', 'https://graph.microsoft.com/v1.0/me'),
+('OUTLOOK_AUTH_URL', 'https://login.live.com/oauth20_authorize.srf'),
+('OUTLOOK_TOKEN_URL', 'https://login.live.com/oauth20_token.srf'),
+('OUTLOOK_USERINFO_URL', 'https://apis.live.net/v5.0/me');

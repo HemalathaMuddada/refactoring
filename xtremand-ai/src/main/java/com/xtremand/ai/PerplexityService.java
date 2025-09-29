@@ -17,10 +17,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xtremand.ai.util.AiServiceUtil;
 import com.xtremand.config.AiConfigService;
+import com.xtremand.config.IntegratedAppKeyService;
 import com.xtremand.domain.dto.EmailRequest;
 import com.xtremand.domain.entity.AiConfig;
 import com.xtremand.domain.entity.UserThread;
 import com.xtremand.domain.enums.AiConfigType;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class PerplexityService implements AiService {
@@ -29,6 +31,10 @@ public class PerplexityService implements AiService {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AiConfigService aiConfigService;
     private final UserThreadRepository userThreadRepo;
+
+    @Autowired
+    private IntegratedAppKeyService integratedAppKeyService;
+
     public PerplexityService(AiConfigService aiConfigService, UserThreadRepository userThreadRepo) {
         this.aiConfigService = aiConfigService;
         this.userThreadRepo = userThreadRepo;
@@ -42,7 +48,6 @@ public class PerplexityService implements AiService {
             return "{\"error\": \"Perplexity API config not found for user.\"}";
         }
         AiConfig config = configOpt.get();
-//        String apiKey = config.getApiKey();
         String apiKey = AiServiceUtil.decrypt(config.getApiKey());
         String prompt = AiPromptBuilder.buildGenericPrompt(emailRequest);
 
@@ -52,7 +57,7 @@ public class PerplexityService implements AiService {
             List<Map<String, Object>> messages = List.of(systemMessage, userMessage);
 
             Map<String, Object> requestMap = new HashMap<>();
-            requestMap.put("model", "sonar"); 
+            requestMap.put("model", "sonar");
             requestMap.put("messages", messages);
             requestMap.put("max_tokens", 500);
             requestMap.put("temperature", 0.7);
@@ -60,7 +65,7 @@ public class PerplexityService implements AiService {
             String requestBody = objectMapper.writeValueAsString(requestMap);
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.perplexity.ai/chat/completions"))
+                    .uri(URI.create(integratedAppKeyService.getUrl("PERPLEXITY_COMPLETIONS_URL")))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + apiKey)
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
@@ -89,7 +94,7 @@ public class PerplexityService implements AiService {
     
     
     public String listSessions(String apiKey) throws Exception {
-        String url = "https://www.perplexity.ai/rest/thread/list_recent?version=2.18&source=default";
+        String url = integratedAppKeyService.getUrl("PERPLEXITY_THREAD_LIST_URL");
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Accept", "application/json")
@@ -103,7 +108,7 @@ public class PerplexityService implements AiService {
 
     // Get messages for a specific thread
     public String getMessages(String apiKey, String threadId) throws Exception {
-        String url = String.format("https://www.perplexity.ai/rest/thread/%s/messages?version=2.18&source=default", threadId);
+        String url = String.format(integratedAppKeyService.getUrl("PERPLEXITY_THREAD_MESSAGES_URL"), threadId);
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Accept", "application/json")
@@ -117,7 +122,7 @@ public class PerplexityService implements AiService {
 
     // Send a chat message and get response, posting message to Perplexity
     public String sendMessage(String apiKey, String threadId, String content) throws Exception {
-        String url = String.format("https://www.perplexity.ai/rest/thread/%s/message?version=2.18&source=default", threadId);
+        String url = String.format(integratedAppKeyService.getUrl("PERPLEXITY_THREAD_MESSAGE_URL"), threadId);
 
         Map<String, String> messageBody = Map.of("content", content);
         String body = objectMapper.writeValueAsString(messageBody);
@@ -135,7 +140,7 @@ public class PerplexityService implements AiService {
 
     // Create a new chat session/thread
     public String createSession(String apiKey, String userEmail) throws Exception {
-        String url = "https://www.perplexity.ai/rest/thread/create?version=2.18&source=default";
+        String url = integratedAppKeyService.getUrl("PERPLEXITY_THREAD_CREATE_URL");
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -163,7 +168,7 @@ public class PerplexityService implements AiService {
 
     
     public String createVectorStore(String apiKey, String name) throws Exception {
-        String url = "https://api.perplexity.ai/vector-store/";
+        String url = integratedAppKeyService.getUrl("PERPLEXITY_VECTOR_STORE_URL");
         Map<String, String> payload = Map.of("name", name);
         String body = objectMapper.writeValueAsString(payload);
         HttpRequest httpRequest = HttpRequest.newBuilder()

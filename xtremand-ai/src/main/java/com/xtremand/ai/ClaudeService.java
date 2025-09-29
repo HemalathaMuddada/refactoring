@@ -17,9 +17,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xtremand.ai.util.AiServiceUtil;
 import com.xtremand.config.AiConfigService;
+import com.xtremand.config.IntegratedAppKeyService;
 import com.xtremand.domain.dto.EmailRequest;
 import com.xtremand.domain.entity.AiConfig;
 import com.xtremand.domain.enums.AiConfigType;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Service
 public class ClaudeService implements AiService {
@@ -27,6 +29,9 @@ public class ClaudeService implements AiService {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AiConfigService aiConfigService;
+
+    @Autowired
+    private IntegratedAppKeyService integratedAppKeyService;
 
     public ClaudeService(AiConfigService aiConfigService) {
         this.aiConfigService = aiConfigService;
@@ -43,21 +48,21 @@ public class ClaudeService implements AiService {
 
         String prompt = AiPromptBuilder.buildGenericPrompt(emailRequest);;
         try {
-        	Map<String, Object> requestMap = new HashMap<>();
+            Map<String, Object> requestMap = new HashMap<>();
             List<Map<String, Object>> messages = new ArrayList<>();
             Map<String, Object> message = new HashMap<>();
             message.put("role", "user");
-            message.put("content", prompt); 
+            message.put("content", prompt);
 
             messages.add(message);
-            requestMap.put("model", "claude-3-5-sonnet-20241022"); 
-            requestMap.put("max_tokens", 1000); 
-            requestMap.put("messages", messages); 
+            requestMap.put("model", "claude-3-5-sonnet-20241022");
+            requestMap.put("max_tokens", 1000);
+            requestMap.put("messages", messages);
 
             String requestBody = objectMapper.writeValueAsString(requestMap);
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.anthropic.com/v1/messages"))
+                    .uri(URI.create(integratedAppKeyService.getUrl("CLAUDE_MESSAGES_URL")))
                     .header("Content-Type", "application/json")
                     .header("anthropic-version", "2023-06-01")
                     .header("x-api-key", apiKey)

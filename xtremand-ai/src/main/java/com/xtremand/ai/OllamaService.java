@@ -7,6 +7,8 @@ import com.xtremand.domain.dto.EmailRequest;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import com.xtremand.config.IntegratedAppKeyService;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -20,6 +22,9 @@ public class OllamaService implements AiService {
 
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    private IntegratedAppKeyService integratedAppKeyService;
 
     public String generateEmailResponse(EmailRequest emailRequest) {
         String prompt = AiPromptBuilder.buildGenericPrompt(emailRequest);
@@ -38,7 +43,7 @@ public class OllamaService implements AiService {
                 requestMap.put("stream", false);
 
                 String requestBody = objectMapper.writeValueAsString(requestMap);
-                HttpRequest request = HttpRequest.newBuilder().uri(URI.create("http://localhost:11434/api/generate"))
+                HttpRequest request = HttpRequest.newBuilder().uri(URI.create(integratedAppKeyService.getUrl("OLLAMA_GENERATE_URL")))
                         .header("Content-Type", "application/json")
                         .POST(HttpRequest.BodyPublishers.ofString(requestBody)).build();
 

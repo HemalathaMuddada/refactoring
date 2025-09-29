@@ -9,9 +9,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.view.RedirectView;
 
+import com.xtremand.config.IntegratedAppKeyService;
 import com.xtremand.config.MailConfigService;
 import com.xtremand.domain.dto.MailConfigInput;
 import com.xtremand.domain.dto.OAuthTokenResponse;
@@ -57,6 +59,9 @@ public class MicrosoftOAuthController {
 
     private final UserRepository userRepository;
 
+    @Autowired
+    private IntegratedAppKeyService integratedAppKeyService;
+
     public MicrosoftOAuthController(MailConfigService mailConfigService, AuthenticationFacade authenticationFacade, UserRepository userRepository) {
         this.mailConfigService = mailConfigService;
         this.authenticationFacade = authenticationFacade;
@@ -74,7 +79,7 @@ public class MicrosoftOAuthController {
         String combinedState = username + "|" + importantMailsJoined;
         String encodedState = URLEncoder.encode(combinedState, StandardCharsets.UTF_8);
 
-        String url = "https://login.microsoftonline.com/common/oauth2/v2.0/authorize" +
+        String url = integratedAppKeyService.getUrl("MICROSOFT_AUTH_URL") +
                 "?client_id=" + URLEncoder.encode(microsoftClientId, StandardCharsets.UTF_8) +
                 "&response_type=code" +
                 "&redirect_uri=" + URLEncoder.encode(microsoftRedirectUri, StandardCharsets.UTF_8) +
@@ -137,7 +142,7 @@ public class MicrosoftOAuthController {
     // Exchange auth code for tokens
     private Mono<OAuthTokenResponse> exchangeCodeForTokens(String code) {
         return webClient.post()
-                .uri("https://login.microsoftonline.com/common/oauth2/v2.0/token")
+                .uri(integratedAppKeyService.getUrl("MICROSOFT_TOKEN_URL"))
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData("client_id", microsoftClientId)
                         .with("scope", "https://graph.microsoft.com/Mail.ReadWrite offline_access user.read")
@@ -156,7 +161,7 @@ public class MicrosoftOAuthController {
     // Fetch user email from Microsoft Graph API
     private Mono<String> fetchUserEmail(String accessToken) {
         return webClient.get()
-                .uri("https://graph.microsoft.com/v1.0/me")
+                .uri(integratedAppKeyService.getUrl("MICROSOFT_GRAPH_URL"))
                 .headers(headers -> headers.setBearerAuth(accessToken))
                 .retrieve()
                 .bodyToMono(Object.class)

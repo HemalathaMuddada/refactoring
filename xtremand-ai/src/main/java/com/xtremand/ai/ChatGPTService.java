@@ -10,6 +10,8 @@ import com.xtremand.domain.enums.AiConfigType;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import com.xtremand.config.IntegratedAppKeyService;
+import org.springframework.beans.factory.annotation.Autowired;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -24,6 +26,9 @@ public class ChatGPTService implements AiService {
     private final HttpClient httpClient = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final AiConfigService aiConfigService;
+
+    @Autowired
+    private IntegratedAppKeyService integratedAppKeyService;
 
     public ChatGPTService(AiConfigService aiConfigService) {
         this.aiConfigService = aiConfigService;
@@ -51,7 +56,7 @@ public class ChatGPTService implements AiService {
             String requestBody = objectMapper.writeValueAsString(requestMap);
 
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.openai.com/v1/chat/completions"))
+                    .uri(URI.create(integratedAppKeyService.getUrl("CHATGPT_COMPLETIONS_URL")))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + apiKey)
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))

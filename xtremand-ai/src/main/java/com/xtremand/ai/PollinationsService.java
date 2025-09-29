@@ -3,7 +3,9 @@ package com.xtremand.ai;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xtremand.ai.util.AiServiceUtil;
 import com.xtremand.config.AiConfigService;
+import com.xtremand.config.IntegratedAppKeyService;
 import com.xtremand.domain.dto.EmailRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -22,6 +24,9 @@ public class PollinationsService implements AiService {
 
     private final AiConfigService aiConfigService;
 
+    @Autowired
+    private IntegratedAppKeyService integratedAppKeyService;
+
     public PollinationsService(AiConfigService aiConfigService) {
         this.aiConfigService = aiConfigService;
     }
@@ -32,7 +37,7 @@ public class PollinationsService implements AiService {
         try {
             String encodedPrompt = URLEncoder.encode(prompt, StandardCharsets.UTF_8);
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://text.pollinations.ai/" + encodedPrompt))
+                    .uri(URI.create(integratedAppKeyService.getUrl("POLLINATIONS_URL") + encodedPrompt))
                     .GET()
                     .build();
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
