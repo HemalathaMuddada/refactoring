@@ -1,23 +1,22 @@
 package com.xtremand.ai;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.xtremand.ai.util.AiServiceUtil;
+import com.xtremand.config.AiConfigService;
+import com.xtremand.domain.dto.EmailRequest;
+import com.xtremand.domain.entity.AiConfig;
+import com.xtremand.domain.enums.AiConfigType;
+import org.springframework.stereotype.Service;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
-
-import org.springframework.stereotype.Service;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.xtremand.config.AiConfigService;
-import com.xtremand.domain.dto.EmailRequest;
-import com.xtremand.domain.entity.AiConfig;
-import com.xtremand.domain.enums.AiConfigType;
 
 @Service
 public class ChatGPTService implements AiService {
@@ -37,7 +36,7 @@ public class ChatGPTService implements AiService {
             return "{\"error\": \"ChatGPT API config not found for user.\"}";
         }
         AiConfig config = configOpt.get();
-        String apiKey = config.getApiKey();
+        String apiKey = AiServiceUtil.decrypt(config.getApiKey());
 
         String prompt = AiPromptBuilder.buildGenericPrompt(emailRequest);
         try {
@@ -47,7 +46,7 @@ public class ChatGPTService implements AiService {
 
             Map<String, Object> requestMap = new HashMap<>();
             requestMap.put("model", "gpt-4");
-            requestMap.put("messages", new Map[] { message });
+            requestMap.put("messages", new Map[]{message});
 
             String requestBody = objectMapper.writeValueAsString(requestMap);
 
@@ -63,30 +62,12 @@ public class ChatGPTService implements AiService {
 
             if (root.has("choices") && root.get("choices").isArray()) {
                 String content = root.get("choices").get(0).get("message").get("content").asText();
-                return formatResponse(content);
+                return AiServiceUtil.formatResponse(content);
             }
             return "{\"error\": \"Invalid response from ChatGPT API\"}";
 
         } catch (IOException | InterruptedException e) {
             return "{\"error\": \"ChatGPTService failed: " + e.getMessage() + "\"}";
-        }
-    }
-
-    private String formatResponse(String responseText) {
-        String[] parts = responseText.split("\n\n", 2);
-        String subject = "No Subject";
-        String body = responseText;
-        if (parts.length == 2 && parts[0].toLowerCase().startsWith("subject:")) {
-            subject = parts[0].substring("subject:".length()).trim();
-            body = parts[1];
-        }
-        Map<String, String> result = new LinkedHashMap<>();
-        result.put("subject", subject);
-        result.put("body", body);
-        try {
-            return objectMapper.writeValueAsString(result);
-        } catch (Exception e) {
-            return "{\"error\": \"Failed to format ChatGPT response.\"}";
         }
     }
 }
